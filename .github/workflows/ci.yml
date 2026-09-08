@@ -1,0 +1,58 @@
+name: Multi-School ERP CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    name: Build & Verify Suite
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Server Dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Run Backend Integration & Unit Tests
+        working-directory: ./server
+        env:
+          NODE_ENV: test
+          PORT: 5000
+          MONGO_URI: mongodb://localhost:27017/multi_school_erp_test
+          JWT_ACCESS_SECRET: github_ci_super_secret_access_jwt_key_123!
+          JWT_REFRESH_SECRET: github_ci_super_secret_refresh_jwt_key_123!
+        run: npm test
+
+      - name: Build Backend TypeScript
+        working-directory: ./server
+        run: npm run build
+
+      - name: Install Client Dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Build Frontend Application
+        working-directory: ./client
+        run: npm run build
