@@ -11,7 +11,6 @@ import {
   ArrowRight,
   ShieldCheck,
   AlertCircle,
-  Sparkles,
   CheckCircle2,
   RotateCw,
   X,
@@ -80,13 +79,6 @@ export const LoginPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleQuickFill = (fillEmail: string, fillPass: string = 'Admin@123') => {
-    setEmail(fillEmail);
-    setPassword(fillPass);
-    setOtpIdentifier(fillEmail);
-    setError('');
   };
 
   // Open OTP modal and send code
@@ -476,55 +468,12 @@ export const LoginPage: React.FC = () => {
               href="#contact-admin"
               onClick={(e) => {
                 e.preventDefault();
-                alert('For new school registrations or account access, please reach out to admin@erp.com');
+                alert('For new school registrations or account access, please reach out to priyanshukumarr444@gmail.com');
               }}
               className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
             >
               Contact Administrator
             </a>
-          </div>
-
-          {/* Quick Demo Credentials Switcher */}
-          <div className="mt-8 pt-5 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-2.5 uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-              <span>One-Click Demo Fill (Optional)</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('superadmin@erp.com')}
-                className={`px-2.5 py-2 rounded-lg text-xs font-medium border text-center transition-all cursor-pointer ${
-                  email === 'superadmin@erp.com'
-                    ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-semibold shadow-2xs'
-                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900'
-                }`}
-              >
-                Super Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin@greenvalley.edu')}
-                className={`px-2.5 py-2 rounded-lg text-xs font-medium border text-center transition-all cursor-pointer ${
-                  email === 'admin@greenvalley.edu'
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-semibold shadow-2xs'
-                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900'
-                }`}
-              >
-                School Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('teacher@greenvalley.edu')}
-                className={`px-2.5 py-2 rounded-lg text-xs font-medium border text-center transition-all cursor-pointer ${
-                  email === 'teacher@greenvalley.edu'
-                    ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-semibold shadow-2xs'
-                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900'
-                }`}
-              >
-                Teacher
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -732,60 +681,6 @@ export const LoginPage: React.FC = () => {
                       </>
                     )}
                   </button>
-                </div>
-
-                {/* Quick Role Switch inside Modal for Convenience */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-center mb-2">
-                    Or switch role for OTP test:
-                  </p>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOtpIdentifier('superadmin@erp.com');
-                        setOtpCode('123456');
-                        setOtpError('');
-                      }}
-                      className={`py-1.5 px-2 text-[11px] rounded-lg border text-center transition-colors cursor-pointer ${
-                        otpIdentifier === 'superadmin@erp.com'
-                          ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold'
-                          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      Super Admin
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOtpIdentifier('admin@greenvalley.edu');
-                        setOtpCode('123456');
-                        setOtpError('');
-                      }}
-                      className={`py-1.5 px-2 text-[11px] rounded-lg border text-center transition-colors cursor-pointer ${
-                        otpIdentifier === 'admin@greenvalley.edu'
-                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold'
-                          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      School Admin
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOtpIdentifier('teacher@greenvalley.edu');
-                        setOtpCode('123456');
-                        setOtpError('');
-                      }}
-                      className={`py-1.5 px-2 text-[11px] rounded-lg border text-center transition-colors cursor-pointer ${
-                        otpIdentifier === 'teacher@greenvalley.edu'
-                          ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-bold'
-                          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      Teacher
-                    </button>
-                  </div>
                 </div>
               </form>
             )}

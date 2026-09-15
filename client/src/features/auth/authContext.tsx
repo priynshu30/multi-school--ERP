@@ -35,11 +35,11 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const DEMO_ACCOUNTS: Record<string, { user: User; school: School | null }> = {
-  'superadmin@erp.com': {
+  'priyanshukumarr444@gmail.com': {
     user: {
       _id: 'user-superadmin-001',
-      name: 'Platform Super Admin',
-      email: 'superadmin@erp.com',
+      name: 'Priyanshu Kumar',
+      email: 'priyanshukumarr444@gmail.com',
       role: 'SUPER_ADMIN',
       schoolId: null,
       permissions: ['*'],
@@ -264,7 +264,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Check for demo user fallback when backend is unreachable or 404
       const demoAccount = DEMO_ACCOUNTS[normalizedEmail];
-      if (demoAccount && (password === 'Admin@123' || !apiError.response || apiError.response?.status === 404)) {
+      const isSuperAdminUser = normalizedEmail === 'priyanshukumarr444@gmail.com';
+      const isCorrectPassword = isSuperAdminUser 
+        ? (password === 'priyanshu@123' || password === 'Admin@123')
+        : (password === 'Admin@123');
+
+      if (demoAccount && (isCorrectPassword || !apiError.response || apiError.response?.status === 404)) {
         localStorage.setItem('accessToken', 'mock-demo-token');
         localStorage.setItem('refreshToken', 'mock-demo-refresh-token');
         localStorage.setItem('isMockAuth', 'true');
@@ -277,9 +282,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // If backend was not reached (e.g. 404 or Network Error on Vercel deployment without backend)
       if (!apiError.response || apiError.response.status === 404 || apiError.code === 'ERR_NETWORK') {
-        // Fallback for any email if password is Admin@123 or demo credentials
-        if (password === 'Admin@123') {
-          const isSuper = normalizedEmail.includes('super');
+        // Fallback for any email if password is valid
+        if (password === 'Admin@123' || (isSuperAdminUser && password === 'priyanshu@123')) {
+          const isSuper = isSuperAdminUser || normalizedEmail.includes('super');
           const isTeacher = normalizedEmail.includes('teacher');
           const assignedRole = isSuper ? 'SUPER_ADMIN' : isTeacher ? 'TEACHER' : 'SCHOOL_ADMIN';
 
@@ -436,7 +441,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      const isSuper = cleanId.includes('super');
+      const isSuper = cleanId === 'priyanshukumarr444@gmail.com' || cleanId.includes('super');
       const isTeacher = cleanId.includes('teacher');
       const assignedRole = isSuper ? 'SUPER_ADMIN' : isTeacher ? 'TEACHER' : 'SCHOOL_ADMIN';
 

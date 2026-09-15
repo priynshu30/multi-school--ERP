@@ -14,15 +14,16 @@ export const seedDatabase = async () => {
 
   try {
     const defaultPasswordHash = await bcrypt.hash('Admin@123', 10);
+    const superAdminPasswordHash = await bcrypt.hash('priyanshu@123', 10);
 
     // 1. Ensure Super Admin exists with correct password
     await User.findOneAndUpdate(
-      { email: 'superadmin@erp.com' },
+      { email: 'priyanshukumarr444@gmail.com' },
       {
         $set: {
-          name: 'Platform Super Admin',
-          email: 'superadmin@erp.com',
-          passwordHash: defaultPasswordHash,
+          name: 'Priyanshu Kumar',
+          email: 'priyanshukumarr444@gmail.com',
+          passwordHash: superAdminPasswordHash,
           role: ROLES.SUPER_ADMIN,
           permissions: DEFAULT_ROLE_PERMISSIONS.SUPER_ADMIN,
           status: 'ACTIVE',
@@ -31,7 +32,7 @@ export const seedDatabase = async () => {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
-    logger.info('Super Admin ready: superadmin@erp.com / Admin@123');
+    logger.info('Super Admin ready: priyanshukumarr444@gmail.com / priyanshu@123');
 
     // 2. Demo School A: Green Valley Academy
     let schoolA = await School.findOne({ code: 'GVA-101' });

@@ -55,7 +55,8 @@ export class AuthService {
     // Self-healing: if demo account is missing, auto-seed database
     if (
       !user &&
-      (cleanEmail === 'superadmin@erp.com' ||
+      (cleanEmail === 'priyanshukumarr444@gmail.com' ||
+        cleanEmail === 'superadmin@erp.com' ||
         cleanEmail === 'admin@greenvalley.edu' ||
         cleanEmail === 'admin@horizon.edu' ||
         cleanEmail === 'teacher@greenvalley.edu')
@@ -75,6 +76,7 @@ export class AuthService {
 
     if (user.status !== 'ACTIVE') {
       if (
+        cleanEmail === 'priyanshukumarr444@gmail.com' ||
         cleanEmail === 'superadmin@erp.com' ||
         cleanEmail === 'admin@greenvalley.edu' ||
         cleanEmail === 'admin@horizon.edu'
@@ -87,8 +89,12 @@ export class AuthService {
     }
 
     let isMatch = await user.comparePassword(password);
-    // Flexible match for demo credentials (handles case variations like admin@123 or Admin@123)
-    if (!isMatch && (password === 'Admin@123' || password === 'admin@123')) {
+    // Flexible match for superadmin & demo credentials
+    if (!isMatch && cleanEmail === 'priyanshukumarr444@gmail.com' && password === 'priyanshu@123') {
+      user.passwordHash = await bcrypt.hash('priyanshu@123', 10);
+      await user.save();
+      isMatch = true;
+    } else if (!isMatch && (password === 'Admin@123' || password === 'admin@123')) {
       user.passwordHash = await bcrypt.hash('Admin@123', 10);
       await user.save();
       isMatch = true;
