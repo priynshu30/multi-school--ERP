@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-800 tracking-tight;
+    @apply bg-slate-50 text-slate-800 tracking-tight dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200;
   }
 }
 
@@ -19,5 +19,5 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300;
+  @apply bg-slate-200 rounded-full hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700;
 }

@@ -29,7 +29,7 @@ import { NotFoundPage } from '../pages/NotFoundPage';
 
 const RoleBasedHome: React.FC = () => {
   const { user } = useAuth();
-  if (user?.role === 'SUPER_ADMIN') {
+  if (user?.role?.toUpperCase() === 'SUPER_ADMIN') {
     return <SuperAdminDashboard />;
   }
   return <SchoolAdminDashboard />;

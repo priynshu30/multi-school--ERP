@@ -28,12 +28,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
+  const userRole = user.role?.toUpperCase() || '';
+
   // Super admin always bypasses
-  if (user.role === 'SUPER_ADMIN') {
+  if (userRole === 'SUPER_ADMIN') {
     return <Outlet />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.map((r) => r.toUpperCase()).includes(userRole)) {
     return <Navigate to="/unauthorized" replace />;
   }
 

@@ -7,6 +7,8 @@ import {
   loginSchema,
   refreshTokenSchema,
   changePasswordSchema,
+  sendOtpSchema,
+  verifyOtpSchema,
 } from './auth.validation.js';
 
 const router = Router();
@@ -27,6 +29,20 @@ router.post(
   authLimiter,
   validateRequest({ body: loginSchema }),
   AuthController.login
+);
+
+router.post(
+  '/send-otp',
+  authLimiter,
+  validateRequest({ body: sendOtpSchema }),
+  AuthController.sendOtp
+);
+
+router.post(
+  '/verify-otp',
+  authLimiter,
+  validateRequest({ body: verifyOtpSchema }),
+  AuthController.verifyOtp
 );
 
 router.post(

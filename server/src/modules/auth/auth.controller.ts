@@ -92,4 +92,29 @@ export class AuthController {
       next(error);
     }
   }
+
+  static async sendOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { identifier } = req.body;
+      const result = await AuthService.sendOtp(identifier);
+      return ApiResponse.success(res, result, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async verifyOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { identifier, otp } = req.body;
+      const meta = {
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      };
+      const result = await AuthService.verifyOtp(identifier, otp, meta);
+      return ApiResponse.success(res, result, 'OTP verified successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+

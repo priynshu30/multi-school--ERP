@@ -27,6 +27,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  sendOtp: (identifier: string) => Promise<{ success: boolean; message: string; demoOtp?: string }>;
+  loginWithOtp: (identifier: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -38,7 +40,7 @@ const DEMO_ACCOUNTS: Record<string, { user: User; school: School | null }> = {
       _id: 'user-superadmin-001',
       name: 'Platform Super Admin',
       email: 'superadmin@erp.com',
-      role: 'super_admin',
+      role: 'SUPER_ADMIN',
       schoolId: null,
       permissions: ['*'],
       phone: '+91 98765 43210',
@@ -50,9 +52,46 @@ const DEMO_ACCOUNTS: Record<string, { user: User; school: School | null }> = {
       _id: 'user-admin-gva-002',
       name: 'Dr. Rajesh Sharma',
       email: 'admin@greenvalley.edu',
-      role: 'school_admin',
+      role: 'SCHOOL_ADMIN',
       schoolId: 'school-gva-001',
-      permissions: ['school:read', 'school:write', 'users:*', 'academics:*', 'students:*'],
+      permissions: [
+        'schools.view',
+        'users.view',
+        'users.create',
+        'users.update',
+        'users.activate',
+        'staff.view',
+        'staff.create',
+        'staff.update',
+        'staff.delete',
+        'teachers.view',
+        'teachers.create',
+        'teachers.update',
+        'teachers.delete',
+        'students.view',
+        'students.create',
+        'students.update',
+        'students.delete',
+        'parents.view',
+        'parents.create',
+        'parents.update',
+        'parents.delete',
+        'attendance.view',
+        'attendance.mark',
+        'attendance.update',
+        'fees.view',
+        'fees.create',
+        'fees.collect',
+        'fees.refund',
+        'transport.view',
+        'transport.manage',
+        'transport.track',
+        'academics.manage',
+        'academics.view',
+        'exams.manage',
+        'exams.marks.enter',
+        'exams.view',
+      ],
       phone: '+91 98111 22334',
     },
     school: {
@@ -69,9 +108,46 @@ const DEMO_ACCOUNTS: Record<string, { user: User; school: School | null }> = {
       _id: 'user-admin-his-003',
       name: 'Anita Desai',
       email: 'admin@horizon.edu',
-      role: 'school_admin',
+      role: 'SCHOOL_ADMIN',
       schoolId: 'school-his-002',
-      permissions: ['school:read', 'school:write', 'users:*', 'academics:*', 'students:*'],
+      permissions: [
+        'schools.view',
+        'users.view',
+        'users.create',
+        'users.update',
+        'users.activate',
+        'staff.view',
+        'staff.create',
+        'staff.update',
+        'staff.delete',
+        'teachers.view',
+        'teachers.create',
+        'teachers.update',
+        'teachers.delete',
+        'students.view',
+        'students.create',
+        'students.update',
+        'students.delete',
+        'parents.view',
+        'parents.create',
+        'parents.update',
+        'parents.delete',
+        'attendance.view',
+        'attendance.mark',
+        'attendance.update',
+        'fees.view',
+        'fees.create',
+        'fees.collect',
+        'fees.refund',
+        'transport.view',
+        'transport.manage',
+        'transport.track',
+        'academics.manage',
+        'academics.view',
+        'exams.manage',
+        'exams.marks.enter',
+        'exams.view',
+      ],
       phone: '+91 98222 33445',
     },
     school: {
@@ -88,9 +164,16 @@ const DEMO_ACCOUNTS: Record<string, { user: User; school: School | null }> = {
       _id: 'user-teacher-004',
       name: 'Pooja Verma',
       email: 'teacher@greenvalley.edu',
-      role: 'teacher',
+      role: 'TEACHER',
       schoolId: 'school-gva-001',
-      permissions: ['academics:read', 'students:read', 'attendance:*'],
+      permissions: [
+        'students.view',
+        'attendance.view',
+        'attendance.mark',
+        'academics.view',
+        'exams.marks.enter',
+        'exams.view',
+      ],
       phone: '+91 98111 55667',
     },
     school: {
@@ -196,12 +279,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!apiError.response || apiError.response.status === 404 || apiError.code === 'ERR_NETWORK') {
         // Fallback for any email if password is Admin@123 or demo credentials
         if (password === 'Admin@123') {
+          const isSuper = normalizedEmail.includes('super');
+          const isTeacher = normalizedEmail.includes('teacher');
+          const assignedRole = isSuper ? 'SUPER_ADMIN' : isTeacher ? 'TEACHER' : 'SCHOOL_ADMIN';
+
+          const teacherPermissions = [
+            'students.view',
+            'attendance.view',
+            'attendance.mark',
+            'academics.view',
+            'exams.marks.enter',
+            'exams.view',
+          ];
+
+          const schoolAdminPermissions = [
+            'schools.view',
+            'users.view',
+            'users.create',
+            'users.update',
+            'users.activate',
+            'staff.view',
+            'staff.create',
+            'staff.update',
+            'staff.delete',
+            'teachers.view',
+            'teachers.create',
+            'teachers.update',
+            'teachers.delete',
+            'students.view',
+            'students.create',
+            'students.update',
+            'students.delete',
+            'parents.view',
+            'parents.create',
+            'parents.update',
+            'parents.delete',
+            'attendance.view',
+            'attendance.mark',
+            'attendance.update',
+            'fees.view',
+            'fees.create',
+            'fees.collect',
+            'fees.refund',
+            'transport.view',
+            'transport.manage',
+            'transport.track',
+            'academics.manage',
+            'academics.view',
+            'exams.manage',
+            'exams.marks.enter',
+            'exams.view',
+          ];
+
           const genericUser: User = {
-            _id: 'user-admin-' + Date.now(),
-            name: normalizedEmail.split('@')[0].toUpperCase(),
+            _id: 'user-' + assignedRole.toLowerCase() + '-' + Date.now(),
+            name: normalizedEmail.split('@')[0].replace('.', ' ').toUpperCase(),
             email: normalizedEmail,
-            role: normalizedEmail.includes('super') ? 'super_admin' : 'school_admin',
-            permissions: ['*'],
+            role: assignedRole,
+            permissions: isSuper ? ['*'] : isTeacher ? teacherPermissions : schoolAdminPermissions,
           };
           localStorage.setItem('accessToken', 'mock-demo-token');
           localStorage.setItem('refreshToken', 'mock-demo-refresh-token');
@@ -218,6 +353,156 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       throw new Error(apiError.response?.data?.message || 'Invalid email or password.');
+    }
+  };
+
+  const sendOtp = async (identifier: string): Promise<{ success: boolean; message: string; demoOtp?: string }> => {
+    const cleanId = identifier.trim().toLowerCase();
+    if (!cleanId) {
+      throw new Error('Please enter your email or username');
+    }
+
+    try {
+      const response = await apiClient.post('/auth/send-otp', { identifier: cleanId });
+      if (response.data?.success) {
+        return {
+          success: true,
+          message: response.data.message || `OTP sent to ${cleanId}`,
+          demoOtp: response.data.data?.previewOtp || '123456',
+        };
+      }
+    } catch (apiError: any) {
+      // If backend is unreachable or 404, fallback cleanly for demo mode
+      if (!apiError.response || apiError.response.status === 404 || apiError.code === 'ERR_NETWORK') {
+        return {
+          success: true,
+          message: `Verification code sent to ${cleanId}`,
+          demoOtp: '123456',
+        };
+      }
+
+      throw new Error(apiError.response?.data?.message || 'Failed to send OTP. Please check your email.');
+    }
+
+    return {
+      success: true,
+      message: `OTP sent to ${cleanId}`,
+      demoOtp: '123456',
+    };
+  };
+
+  const loginWithOtp = async (identifier: string, otp: string) => {
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanOtp = otp.trim();
+
+    if (!cleanOtp) {
+      throw new Error('Please enter the OTP code');
+    }
+
+    try {
+      const response = await apiClient.post('/auth/verify-otp', { identifier: cleanId, otp: cleanOtp });
+      if (response.data?.success) {
+        const { user: loggedInUser, school: loggedInSchool, tokens } = response.data.data;
+        localStorage.setItem('accessToken', tokens.accessToken);
+        localStorage.setItem('refreshToken', tokens.refreshToken);
+        localStorage.removeItem('isMockAuth');
+        localStorage.removeItem('mockUser');
+        localStorage.removeItem('mockSchool');
+        setUser(loggedInUser);
+        setSchool(loggedInSchool);
+        return;
+      }
+    } catch (apiError: any) {
+      // If backend explicitly rejected OTP
+      if (apiError.response?.status === 401 && apiError.response?.data?.message) {
+        throw new Error(apiError.response.data.message);
+      }
+
+      // Offline / fallback mode
+      const isValidDemoOtp = cleanOtp === '123456' || cleanOtp === '1234';
+      if (!isValidDemoOtp) {
+        throw new Error('Invalid OTP code. Use code 123456.');
+      }
+
+      const demoAccount = DEMO_ACCOUNTS[cleanId];
+      if (demoAccount) {
+        localStorage.setItem('accessToken', 'mock-demo-token');
+        localStorage.setItem('refreshToken', 'mock-demo-refresh-token');
+        localStorage.setItem('isMockAuth', 'true');
+        localStorage.setItem('mockUser', JSON.stringify(demoAccount.user));
+        localStorage.setItem('mockSchool', JSON.stringify(demoAccount.school));
+        setUser(demoAccount.user);
+        setSchool(demoAccount.school);
+        return;
+      }
+
+      const isSuper = cleanId.includes('super');
+      const isTeacher = cleanId.includes('teacher');
+      const assignedRole = isSuper ? 'SUPER_ADMIN' : isTeacher ? 'TEACHER' : 'SCHOOL_ADMIN';
+
+      const teacherPermissions = [
+        'students.view',
+        'attendance.view',
+        'attendance.mark',
+        'academics.view',
+        'exams.marks.enter',
+        'exams.view',
+      ];
+
+      const schoolAdminPermissions = [
+        'schools.view',
+        'users.view',
+        'users.create',
+        'users.update',
+        'users.activate',
+        'staff.view',
+        'staff.create',
+        'staff.update',
+        'staff.delete',
+        'teachers.view',
+        'teachers.create',
+        'teachers.update',
+        'teachers.delete',
+        'students.view',
+        'students.create',
+        'students.update',
+        'students.delete',
+        'parents.view',
+        'parents.create',
+        'parents.update',
+        'parents.delete',
+        'attendance.view',
+        'attendance.mark',
+        'attendance.update',
+        'fees.view',
+        'fees.create',
+        'fees.collect',
+        'fees.refund',
+        'transport.view',
+        'transport.manage',
+        'transport.track',
+        'academics.manage',
+        'academics.view',
+        'exams.manage',
+        'exams.marks.enter',
+        'exams.view',
+      ];
+
+      const genericUser: User = {
+        _id: 'user-' + assignedRole.toLowerCase() + '-' + Date.now(),
+        name: cleanId.split('@')[0].replace('.', ' ').toUpperCase(),
+        email: cleanId,
+        role: assignedRole,
+        permissions: isSuper ? ['*'] : isTeacher ? teacherPermissions : schoolAdminPermissions,
+      };
+
+      localStorage.setItem('accessToken', 'mock-demo-token');
+      localStorage.setItem('refreshToken', 'mock-demo-refresh-token');
+      localStorage.setItem('isMockAuth', 'true');
+      localStorage.setItem('mockUser', JSON.stringify(genericUser));
+      setUser(genericUser);
+      setSchool(null);
+      return;
     }
   };
 
@@ -251,6 +536,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         login,
+        sendOtp,
+        loginWithOtp,
         logout,
       }}
     >
