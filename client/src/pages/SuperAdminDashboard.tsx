@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { StatCard } from '../components/ui/StatCard';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -31,6 +32,7 @@ interface SchoolItem {
 }
 
 export const SuperAdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [schools, setSchools] = useState<SchoolItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,6 +86,7 @@ export const SuperAdminDashboard: React.FC = () => {
             variant="primary"
             size="sm"
             leftIcon={<Plus className="w-4 h-4" />}
+            onClick={() => navigate('/schools')}
           >
             Provision New School
           </Button>
@@ -235,6 +238,7 @@ export const SuperAdminDashboard: React.FC = () => {
                       variant="ghost"
                       size="sm"
                       rightIcon={<ExternalLink className="w-3.5 h-3.5" />}
+                      onClick={() => navigate('/schools')}
                     >
                       Manage
                     </Button>

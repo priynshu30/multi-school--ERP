@@ -46,7 +46,7 @@ const STATUS_VARIANTS: Record<string, 'success' | 'danger' | 'warning' | 'info'>
 const INITIAL_FORM = {
   name: '', code: '', slug: '', email: '', phone: '',
   address: '', city: '', state: '', country: 'India',
-  planId: 'basic', currency: 'INR',
+  planId: 'starter', currency: 'INR',
   initialAdmin: { name: '', email: '', password: '', phone: '' },
 };
 
@@ -75,7 +75,18 @@ export const SchoolsPage: React.FC = () => {
         setSchools(res.data.data);
         setPagination(res.data.pagination);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      // Offline/mock mode fallback: load from localStorage
+      const isMock = localStorage.getItem('isMockAuth') === 'true';
+      if (isMock) {
+        const mockSchools = JSON.parse(localStorage.getItem('mockSchools') || '[]');
+        setSchools(mockSchools);
+        setPagination({ page: 1, limit: 10, total: mockSchools.length, totalPages: 1 });
+        setStats({ total: mockSchools.length, active: mockSchools.filter((s: any) => s.status === 'ACTIVE').length, suspended: 0 });
+      } else {
+        console.error(e);
+      }
+    }
     finally { setLoading(false); }
   }, [search, statusFilter]);
 
@@ -93,18 +104,61 @@ export const SchoolsPage: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Client-side validation for required fields
+    if (!formData.name.trim() || !formData.code.trim() || !formData.slug.trim() || !formData.email.trim()) {
+      setError('School Name, Code, Slug and Email are required.');
+      return;
+    }
+    if (!formData.phone.trim() || !formData.city.trim() || !formData.address.trim() || !formData.state.trim()) {
+      setError('Phone, City, Address and State are required.');
+      return;
+    }
+
     setSubmitting(true);
     setError('');
     try {
       const payload: any = { ...formData };
       if (!payload.initialAdmin.email) delete payload.initialAdmin;
+
+      const isMock = localStorage.getItem('isMockAuth') === 'true';
+      if (isMock) {
+        // Offline mode: save school to localStorage as mock data
+        const mockSchool = {
+          _id: 'mock-school-' + Date.now(),
+          name: formData.name,
+          code: formData.code.toUpperCase(),
+          slug: formData.slug.toLowerCase(),
+          email: formData.email,
+          phone: formData.phone,
+          city: formData.city,
+          state: formData.state,
+          country: formData.country,
+          address: formData.address,
+          planId: formData.planId,
+          status: 'ACTIVE' as const,
+          createdAt: new Date().toISOString(),
+          staffCount: 0,
+          teacherCount: 0,
+        };
+        const existing = JSON.parse(localStorage.getItem('mockSchools') || '[]');
+        existing.push(mockSchool);
+        localStorage.setItem('mockSchools', JSON.stringify(existing));
+        setSchools((prev) => [...prev, mockSchool]);
+        setStats((prev) => ({ ...prev, total: prev.total + 1, active: prev.active + 1 }));
+        setPagination((prev) => ({ ...prev, total: prev.total + 1 }));
+        setCreateOpen(false);
+        setFormData(INITIAL_FORM);
+        return;
+      }
+
       await apiClient.post('/schools', payload);
       setCreateOpen(false);
       setFormData(INITIAL_FORM);
       fetchSchools(1);
       fetchStats();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create school');
+      setError(err.response?.data?.message || 'Failed to create school. Please check all required fields.');
     } finally { setSubmitting(false); }
   };
 
@@ -338,9 +392,16 @@ export const SchoolsPage: React.FC = () => {
             <Input label="URL Slug" required value={formData.slug} onChange={(e) => updateForm('slug', e.target.value)} placeholder="e.g. springfield-academy" />
             <Input label="Contact Email" type="email" required value={formData.email} onChange={(e) => updateForm('email', e.target.value)} placeholder="admin@school.edu" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Input label="Phone" value={formData.phone} onChange={(e) => updateForm('phone', e.target.value)} placeholder="+91 XXXXX XXXXX" />
-            <Input label="City" value={formData.city} onChange={(e) => updateForm('city', e.target.value)} placeholder="Mumbai" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input label="Phone" required value={formData.phone} onChange={(e) => updateForm('phone', e.target.value)} placeholder="+91 XXXXX XXXXX" helperText="Min 7 digits" />
+            <Input label="City" required value={formData.city} onChange={(e) => updateForm('city', e.target.value)} placeholder="Mumbai" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input label="Address" required value={formData.address} onChange={(e) => updateForm('address', e.target.value)} placeholder="123, MG Road, Sector 5" />
+            <Input label="State" required value={formData.state} onChange={(e) => updateForm('state', e.target.value)} placeholder="Maharashtra" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input label="Country" value={formData.country} onChange={(e) => updateForm('country', e.target.value)} placeholder="India" />
             <Select
               label="Plan"
               required
