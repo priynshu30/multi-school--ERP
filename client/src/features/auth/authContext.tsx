@@ -32,6 +32,78 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const DEMO_ACCOUNTS: Record<string, { user: User; school: School | null }> = {
+  'superadmin@erp.com': {
+    user: {
+      _id: 'user-superadmin-001',
+      name: 'Platform Super Admin',
+      email: 'superadmin@erp.com',
+      role: 'super_admin',
+      schoolId: null,
+      permissions: ['*'],
+      phone: '+91 98765 43210',
+    },
+    school: null,
+  },
+  'admin@greenvalley.edu': {
+    user: {
+      _id: 'user-admin-gva-002',
+      name: 'Dr. Rajesh Sharma',
+      email: 'admin@greenvalley.edu',
+      role: 'school_admin',
+      schoolId: 'school-gva-001',
+      permissions: ['school:read', 'school:write', 'users:*', 'academics:*', 'students:*'],
+      phone: '+91 98111 22334',
+    },
+    school: {
+      id: 'school-gva-001',
+      name: 'Green Valley Academy',
+      code: 'GVA-101',
+      slug: 'greenvalley',
+      status: 'ACTIVE',
+      currency: 'INR',
+    },
+  },
+  'admin@horizon.edu': {
+    user: {
+      _id: 'user-admin-his-003',
+      name: 'Anita Desai',
+      email: 'admin@horizon.edu',
+      role: 'school_admin',
+      schoolId: 'school-his-002',
+      permissions: ['school:read', 'school:write', 'users:*', 'academics:*', 'students:*'],
+      phone: '+91 98222 33445',
+    },
+    school: {
+      id: 'school-his-002',
+      name: 'Horizon International School',
+      code: 'HIS-202',
+      slug: 'horizon',
+      status: 'ACTIVE',
+      currency: 'INR',
+    },
+  },
+  'teacher@greenvalley.edu': {
+    user: {
+      _id: 'user-teacher-004',
+      name: 'Pooja Verma',
+      email: 'teacher@greenvalley.edu',
+      role: 'teacher',
+      schoolId: 'school-gva-001',
+      permissions: ['academics:read', 'students:read', 'attendance:*'],
+      phone: '+91 98111 55667',
+    },
+    school: {
+      id: 'school-gva-001',
+      name: 'Green Valley Academy',
+      code: 'GVA-101',
+      slug: 'greenvalley',
+      status: 'ACTIVE',
+      currency: 'INR',
+    },
+  },
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [school, setSchool] = useState<School | null>(null);
@@ -40,6 +112,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize session from tokens
   useEffect(() => {
     const initializeAuth = async () => {
+      // Check for mock demo session first
+      if (localStorage.getItem('isMockAuth') === 'true') {
+        const storedUser = localStorage.getItem('mockUser');
+        const storedSchool = localStorage.getItem('mockSchool');
+        if (storedUser) {
+          try {
+            setUser(JSON.parse(storedUser));
+            setSchool(storedSchool ? JSON.parse(storedSchool) : null);
+            setIsLoading(false);
+            return;
+          } catch (e) {
+            console.error('Failed to parse mock session:', e);
+          }
+        }
+      }
+
       const accessToken = localStorage.getItem('accessToken');
       if (!accessToken) {
         setIsLoading(false);
@@ -56,6 +144,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Session initialization failed:', error);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        localStorage.removeItem('isMockAuth');
+        localStorage.removeItem('mockUser');
+        localStorage.removeItem('mockSchool');
         setUser(null);
         setSchool(null);
       } finally {
@@ -67,27 +158,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await apiClient.post('/auth/login', { email, password });
-    if (response.data.success) {
-      const { user: loggedInUser, school: loggedInSchool, tokens } = response.data.data;
-      localStorage.setItem('accessToken', tokens.accessToken);
-      localStorage.setItem('refreshToken', tokens.refreshToken);
-      setUser(loggedInUser);
-      setSchool(loggedInSchool);
+    const normalizedEmail = email.toLowerCase().trim();
+
+    try {
+      const response = await apiClient.post('/auth/login', { email: normalizedEmail, password });
+      if (response.data?.success) {
+        const { user: loggedInUser, school: loggedInSchool, tokens } = response.data.data;
+        localStorage.setItem('accessToken', tokens.accessToken);
+        localStorage.setItem('refreshToken', tokens.refreshToken);
+        localStorage.removeItem('isMockAuth');
+        localStorage.removeItem('mockUser');
+        localStorage.removeItem('mockSchool');
+        setUser(loggedInUser);
+        setSchool(loggedInSchool);
+        return;
+      }
+    } catch (apiError: any) {
+      // If backend explicitly rejected credentials with 401 and valid JSON response
+      if (apiError.response?.status === 401 && apiError.response?.data?.message) {
+        throw new Error(apiError.response.data.message);
+      }
+
+      // Check for demo user fallback when backend is unreachable or 404
+      const demoAccount = DEMO_ACCOUNTS[normalizedEmail];
+      if (demoAccount && (password === 'Admin@123' || !apiError.response || apiError.response?.status === 404)) {
+        localStorage.setItem('accessToken', 'mock-demo-token');
+        localStorage.setItem('refreshToken', 'mock-demo-refresh-token');
+        localStorage.setItem('isMockAuth', 'true');
+        localStorage.setItem('mockUser', JSON.stringify(demoAccount.user));
+        localStorage.setItem('mockSchool', JSON.stringify(demoAccount.school));
+        setUser(demoAccount.user);
+        setSchool(demoAccount.school);
+        return;
+      }
+
+      // If backend was not reached (e.g. 404 or Network Error on Vercel deployment without backend)
+      if (!apiError.response || apiError.response.status === 404 || apiError.code === 'ERR_NETWORK') {
+        // Fallback for any email if password is Admin@123 or demo credentials
+        if (password === 'Admin@123') {
+          const genericUser: User = {
+            _id: 'user-admin-' + Date.now(),
+            name: normalizedEmail.split('@')[0].toUpperCase(),
+            email: normalizedEmail,
+            role: normalizedEmail.includes('super') ? 'super_admin' : 'school_admin',
+            permissions: ['*'],
+          };
+          localStorage.setItem('accessToken', 'mock-demo-token');
+          localStorage.setItem('refreshToken', 'mock-demo-refresh-token');
+          localStorage.setItem('isMockAuth', 'true');
+          localStorage.setItem('mockUser', JSON.stringify(genericUser));
+          setUser(genericUser);
+          setSchool(null);
+          return;
+        }
+
+        throw new Error(
+          'Backend server is not connected. Use demo account (e.g. superadmin@erp.com / Admin@123) or click any demo button.'
+        );
+      }
+
+      throw new Error(apiError.response?.data?.message || 'Invalid email or password.');
     }
   };
 
   const logout = async () => {
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (refreshToken) {
-        await apiClient.post('/auth/logout', { refreshToken });
+      if (localStorage.getItem('isMockAuth') !== 'true') {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (refreshToken) {
+          await apiClient.post('/auth/logout', { refreshToken });
+        }
       }
     } catch (e) {
       console.error('Logout error:', e);
     } finally {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('isMockAuth');
+      localStorage.removeItem('mockUser');
+      localStorage.removeItem('mockSchool');
       setUser(null);
       setSchool(null);
       window.location.href = '/login';
