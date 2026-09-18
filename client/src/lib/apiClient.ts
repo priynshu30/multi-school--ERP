@@ -8,26 +8,28 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor: handle mock auth adapter and inject access token
+// Detect whether running in standalone demo mode or on Vercel without a dedicated backend
+export const isClientOnlyEnvironment = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  if (localStorage.getItem('isMockAuth') === 'true') return true;
+  // If hosted on Vercel (e.g. multi-school-erp-pi.vercel.app) without a separate backend API URL
+  if (window.location.hostname.includes('vercel.app') && !import.meta.env.VITE_API_URL) return true;
+  return false;
+};
+
+// Request interceptor: route directly to mock engine if client-only/mock mode
 apiClient.interceptors.request.use(
   (config) => {
-    const isMock = localStorage.getItem('isMockAuth') === 'true';
-
-    // If running in mock/demo mode, route through in-browser mock engine
-    if (isMock) {
+    if (isClientOnlyEnvironment()) {
       config.adapter = async (cfg) => {
         const mockRes = handleMockApiRequest(cfg);
-        if (mockRes) {
-          return {
-            data: mockRes.data,
-            status: mockRes.status,
-            statusText: mockRes.status === 201 ? 'Created' : 'OK',
-            headers: {},
-            config: cfg,
-          };
-        }
-        const defaultAdapter = axios.getAdapter(axios.defaults.adapter);
-        return defaultAdapter(cfg);
+        return {
+          data: mockRes.data,
+          status: mockRes.status,
+          statusText: mockRes.status === 201 ? 'Created' : 'OK',
+          headers: {},
+          config: cfg,
+        };
       };
     }
 
@@ -59,17 +61,40 @@ const processQueue = (error: any, token: string | null = null) => {
 };
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If Vercel static rewrites returned index.html string for a GET /api/v1/* request
+    if (
+      typeof response.data === 'string' &&
+      (response.data.includes('<!doctype html') || response.data.includes('<!DOCTYPE html'))
+    ) {
+      const mockRes = handleMockApiRequest(response.config);
+      if (mockRes) {
+        localStorage.setItem('isMockAuth', 'true');
+        return {
+          ...response,
+          data: mockRes.data,
+          status: mockRes.status,
+        };
+      }
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 
-    // Fallback to mock API engine if backend is offline, 404, or network failed
+    // Fallback to mock API engine if backend returned 405 (Method Not Allowed on Vercel), 404, 5xx, or network error
     if (
-      (!error.response || error.response.status === 404 || error.response.status >= 500) &&
+      (!error.response ||
+        error.response.status === 405 ||
+        error.response.status === 404 ||
+        error.response.status === 403 ||
+        error.response.status >= 500 ||
+        error.code === 'ERR_NETWORK') &&
       originalRequest
     ) {
       const mockRes = handleMockApiRequest(originalRequest);
       if (mockRes) {
+        localStorage.setItem('isMockAuth', 'true');
         return Promise.resolve({
           data: mockRes.data,
           status: mockRes.status,

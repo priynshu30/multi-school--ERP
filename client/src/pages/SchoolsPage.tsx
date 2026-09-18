@@ -76,16 +76,7 @@ export const SchoolsPage: React.FC = () => {
         setPagination(res.data.pagination);
       }
     } catch (e) {
-      // Offline/mock mode fallback: load from localStorage
-      const isMock = localStorage.getItem('isMockAuth') === 'true';
-      if (isMock) {
-        const mockSchools = JSON.parse(localStorage.getItem('mockSchools') || '[]');
-        setSchools(mockSchools);
-        setPagination({ page: 1, limit: 10, total: mockSchools.length, totalPages: 1 });
-        setStats({ total: mockSchools.length, active: mockSchools.filter((s: any) => s.status === 'ACTIVE').length, suspended: 0 });
-      } else {
-        console.error(e);
-      }
+      console.error('Failed to load schools', e);
     }
     finally { setLoading(false); }
   }, [search, statusFilter]);
@@ -120,37 +111,6 @@ export const SchoolsPage: React.FC = () => {
     try {
       const payload: any = { ...formData };
       if (!payload.initialAdmin.email) delete payload.initialAdmin;
-
-      const isMock = localStorage.getItem('isMockAuth') === 'true';
-      if (isMock) {
-        // Offline mode: save school to localStorage as mock data
-        const mockSchool = {
-          _id: 'mock-school-' + Date.now(),
-          name: formData.name,
-          code: formData.code.toUpperCase(),
-          slug: formData.slug.toLowerCase(),
-          email: formData.email,
-          phone: formData.phone,
-          city: formData.city,
-          state: formData.state,
-          country: formData.country,
-          address: formData.address,
-          planId: formData.planId,
-          status: 'ACTIVE' as const,
-          createdAt: new Date().toISOString(),
-          staffCount: 0,
-          teacherCount: 0,
-        };
-        const existing = JSON.parse(localStorage.getItem('mockSchools') || '[]');
-        existing.push(mockSchool);
-        localStorage.setItem('mockSchools', JSON.stringify(existing));
-        setSchools((prev) => [...prev, mockSchool]);
-        setStats((prev) => ({ ...prev, total: prev.total + 1, active: prev.active + 1 }));
-        setPagination((prev) => ({ ...prev, total: prev.total + 1 }));
-        setCreateOpen(false);
-        setFormData(INITIAL_FORM);
-        return;
-      }
 
       await apiClient.post('/schools', payload);
       setCreateOpen(false);

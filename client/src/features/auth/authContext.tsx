@@ -262,14 +262,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(apiError.response.data.message);
       }
 
-      // Check for demo user fallback when backend is unreachable or 404
+      // Check for demo user fallback when backend is unreachable, 404, 405 (Vercel static) or network error
+      const isOfflineOrVercel =
+        !apiError.response ||
+        apiError.response.status === 404 ||
+        apiError.response.status === 405 ||
+        apiError.code === 'ERR_NETWORK';
+
       const demoAccount = DEMO_ACCOUNTS[normalizedEmail];
       const isSuperAdminUser = normalizedEmail === 'priyanshukumarr444@gmail.com';
       const isCorrectPassword = isSuperAdminUser 
         ? (password === 'priyanshu@123' || password === 'Admin@123')
         : (password === 'Admin@123');
 
-      if (demoAccount && (isCorrectPassword || !apiError.response || apiError.response?.status === 404)) {
+      if (demoAccount && (isCorrectPassword || isOfflineOrVercel)) {
         localStorage.setItem('accessToken', 'mock-demo-token');
         localStorage.setItem('refreshToken', 'mock-demo-refresh-token');
         localStorage.setItem('isMockAuth', 'true');
@@ -280,8 +286,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // If backend was not reached (e.g. 404 or Network Error on Vercel deployment without backend)
-      if (!apiError.response || apiError.response.status === 404 || apiError.code === 'ERR_NETWORK') {
+      // If backend was not reached (e.g. 405 or 404 on Vercel deployment without backend)
+      if (isOfflineOrVercel) {
         // Fallback for any email if password is valid
         if (password === 'Admin@123' || (isSuperAdminUser && password === 'priyanshu@123')) {
           const isSuper = isSuperAdminUser || normalizedEmail.includes('super');
