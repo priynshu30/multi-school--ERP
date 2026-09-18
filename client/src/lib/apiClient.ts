@@ -8,11 +8,24 @@ export const apiClient = axios.create({
   },
 });
 
+// ── Auto-enable mock mode on Vercel at module load time ──────────────────────
+// This runs once when the JS bundle is first parsed, before any component mounts.
+// Ensures mock mode is active from the very first API call.
+if (
+  typeof window !== 'undefined' &&
+  window.location.hostname.includes('vercel.app') &&
+  !import.meta.env.VITE_API_URL
+) {
+  localStorage.setItem('isMockAuth', 'true');
+}
+
 // Detect whether running in standalone demo mode or on Vercel without a dedicated backend
 export const isClientOnlyEnvironment = (): boolean => {
   if (typeof window === 'undefined') return false;
   if (localStorage.getItem('isMockAuth') === 'true') return true;
-  // If hosted on Vercel (e.g. multi-school-erp-pi.vercel.app) without a separate backend API URL
+  // VITE_DEMO_MODE env var can also force mock mode
+  if (import.meta.env.VITE_DEMO_MODE === 'true') return true;
+  // If hosted on Vercel without a separate backend API URL
   if (window.location.hostname.includes('vercel.app') && !import.meta.env.VITE_API_URL) return true;
   return false;
 };

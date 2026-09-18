@@ -2,7 +2,17 @@
   "buildCommand": "cd client && npm install && npm run build",
   "outputDirectory": "client/dist",
   "framework": "vite",
+  "functions": {
+    "api/**/*.js": {
+      "memory": 128,
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/v1/(.*)",
+      "destination": "/api/v1/[...slug]"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
