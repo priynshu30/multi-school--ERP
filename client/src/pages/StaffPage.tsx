@@ -83,6 +83,7 @@ export const StaffPage: React.FC = () => {
     try {
       const payload: any = { ...formData };
       if (!payload.createAccount) { delete payload.password; }
+      payload.joiningDate = payload.joinDate || undefined;
       await apiClient.post('/staff', payload);
       setCreateOpen(false);
       setFormData(INITIAL_FORM);

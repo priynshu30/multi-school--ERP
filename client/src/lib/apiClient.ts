@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { handleMockApiRequest } from './mockApi';
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api/v1',
@@ -7,9 +8,29 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor: inject access token
+// Request interceptor: handle mock auth adapter and inject access token
 apiClient.interceptors.request.use(
   (config) => {
+    const isMock = localStorage.getItem('isMockAuth') === 'true';
+
+    // If running in mock/demo mode, route through in-browser mock engine
+    if (isMock) {
+      config.adapter = async (cfg) => {
+        const mockRes = handleMockApiRequest(cfg);
+        if (mockRes) {
+          return {
+            data: mockRes.data,
+            status: mockRes.status,
+            statusText: mockRes.status === 201 ? 'Created' : 'OK',
+            headers: {},
+            config: cfg,
+          };
+        }
+        const defaultAdapter = axios.getAdapter(axios.defaults.adapter);
+        return defaultAdapter(cfg);
+      };
+    }
+
     const token = localStorage.getItem('accessToken');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -19,7 +40,7 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: handle automatic refresh token rotation
+// Response interceptor: handle automatic refresh token rotation & offline mock fallback
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
@@ -41,6 +62,23 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Fallback to mock API engine if backend is offline, 404, or network failed
+    if (
+      (!error.response || error.response.status === 404 || error.response.status >= 500) &&
+      originalRequest
+    ) {
+      const mockRes = handleMockApiRequest(originalRequest);
+      if (mockRes) {
+        return Promise.resolve({
+          data: mockRes.data,
+          status: mockRes.status,
+          statusText: mockRes.status === 201 ? 'Created' : 'OK',
+          headers: {},
+          config: originalRequest,
+        });
+      }
+    }
 
     if (
       error.response?.status === 401 &&

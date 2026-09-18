@@ -9,9 +9,6 @@
 ### 📊 School Admin Dashboard
 ![School ERP Dashboard](./screenshots/dashboard.png)
 
-### 🔐 Secure Login & Authentication
-![School ERP Login](./screenshots/login.png)
-
 ---
 
 ## ✨ Key Features
@@ -32,19 +29,6 @@
   - Class-wise student distribution bar charts.
   - Live notice board and upcoming timetable widget.
 - **📱 Fully Responsive Design:** Clean mobile-first design with a collapsible navy drawer sidebar, sticky navigation headers, and responsive stat grids.
-
----
-
-## 👥 Demo User Credentials
-
-For testing and demonstration, use the following pre-configured credentials:
-
-| Role | Email Address | Password | Demo OTP | Scope & Permissions |
-| :--- | :--- | :--- | :---: | :--- |
-| **Super Admin** | `priyanshukumarr444@gmail.com` | `priyanshu@123` | `123456` | Full platform control, multi-school management, global audits |
-| **School Admin** | `admin@greenvalley.edu` | `Admin@123` | `123456` | Green Valley Academy admin: staff, teachers, fees, academics |
-| **School Admin** | `admin@horizon.edu` | `Admin@123` | `123456` | Horizon International School admin |
-| **Teacher** | `teacher@greenvalley.edu` | `Admin@123` | `123456` | Class attendance, marks entry, timetable, homework |
 
 ---
 
